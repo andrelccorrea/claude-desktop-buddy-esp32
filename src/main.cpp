@@ -4,6 +4,7 @@
 #include <Preferences.h>
 #include <stdarg.h>
 #include "ble_bridge.h"
+#include "net_bridge.h"
 #include "data.h"
 #include "buddy.h"
 #include "touch_keyboard.h"
@@ -33,6 +34,9 @@ static void btMac(uint8_t mac[6]) {
     esp_efuse_mac_get_default(mac);
 }
 static void startBt() {
+  // A board provisioned for Wi-Fi talks to its host over the authenticated
+  // TCP bridge and leaves the (unencrypted) BLE radio off.
+  if (netConfigured()) { netInit(); return; }
   uint8_t mac[6] = {0};
   btMac(mac);
   snprintf(btName, sizeof(btName), "Claude-%02X%02X", mac[4], mac[5]);
@@ -233,6 +237,7 @@ static void sendCmd(const char* json) {
   size_t n = strlen(json);
   bleWrite((const uint8_t*)json, n);
   bleWrite((const uint8_t*)"\n", 1);
+  netWrite(json);
 }
 const uint8_t INFO_PAGES = 8;
 const uint8_t INFO_PG_BUTTONS  = 1;
