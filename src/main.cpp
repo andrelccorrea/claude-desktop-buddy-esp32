@@ -111,6 +111,10 @@ const uint16_t HOT   = 0xFA20;   // red-orange: warnings, impatience, deny
 // status-strip sparkle and the splash wordmark. Stay constant regardless
 // of which theme is active.
 static const uint16_t CLAUDE_CORAL = 0xDBAA;     // #D97757 → RGB565
+// Green / yellow / orange / red as a usage percentage climbs past 50/75/90.
+static uint16_t usageColor(int pct) {
+  return pct >= 90 ? 0xFB2C : pct >= 75 ? 0xFD6B : pct >= 50 ? 0xFFF4 : 0xAFF5;
+}
 static const uint16_t CLAUDE_INK   = 0xFFFF;     // white glyphs on coral
 // The play-sparkle ("logo the pet plays with") gets a brighter, more
 // saturated orange — closer to claude.ai's vivid asterisk after the 8bpp
@@ -1181,6 +1185,36 @@ void drawInfo() {
     spr.print(total == 1 ? "session" : "sessions");
     y += 40;
 
+    if (tama.nSess) {
+      // Two lines per session from the host's status feed:
+      //   ● repo  branch         model effort
+      //     ctx 42% 84k/200k     12m
+      for (uint8_t i = 0; i < tama.nSess; i++) {
+        const TamaState::Sess& s = tama.sess[i];
+        uint16_t dot = s.state == 'r' ? GREEN : s.state == 'w' ? HOT : p.textDim;
+        spr.fillCircle(8, y + 4, 4, dot);
+        spr.setTextColor(p.text, p.bg);
+        spr.setCursor(18, y); spr.printf("%.15s", s.name);
+        spr.setTextColor(p.textDim, p.bg);
+        if (s.branch[0]) spr.printf(" %.12s", s.branch);
+        char mdl[24]; snprintf(mdl, sizeof(mdl), "%s %s", s.model, s.effort);
+        spr.setCursor(18, y + 10); spr.setTextColor(p.body, p.bg); spr.print(mdl);
+        int cx = 18 + ((int)strlen(mdl) + 1) * 6;
+        spr.setCursor(cx, y + 10); spr.setTextColor(p.textDim, p.bg); spr.print("ctx ");
+        spr.setTextColor(usageColor(s.ctx), p.bg); spr.printf("%u%%", s.ctx);
+        spr.setTextColor(p.textDim, p.bg);
+        if (s.mins >= 60) spr.printf(" %uh%02u", s.mins / 60, s.mins % 60);
+        else              spr.printf(" %um", s.mins);
+        y += 24;
+      }
+      if (tama.rl5h >= 0 || tama.rl7d >= 0) {
+        spr.setCursor(8, y); spr.setTextColor(p.textDim, p.bg); spr.print("limits ");
+        if (tama.rl5h >= 0) { spr.print("5h "); spr.setTextColor(usageColor(tama.rl5h), p.bg); spr.printf("%d%%  ", tama.rl5h); }
+        if (tama.rl7d >= 0) { spr.setTextColor(p.textDim, p.bg); spr.print("7d "); spr.setTextColor(usageColor(tama.rl7d), p.bg); spr.printf("%d%%", tama.rl7d); }
+        y += 14;
+      }
+      y += 4;
+    } else {
     // Visual block of colored dots — one per session, wrapped on 12 cols.
     // Limit to 36 visible (3 rows of 12) — anything beyond gets a "+N" tail.
     const int dotR = 5, dotPitch = 14;
@@ -1210,6 +1244,7 @@ void drawInfo() {
     spr.fillCircle(8,  y + 32, 4, p.textDim);
     spr.setCursor(18, y + 29); spr.printf("idle     %u", idle);
     y += 50;
+    }
 
     // Quick recent activity — first three entries from the heartbeat.
     spr.setTextColor(p.body, p.bg);
@@ -1547,8 +1582,24 @@ static void drawStatusStrip() {
 
   // Inline activity sparkline between the labels and tokens — 70x12 on the
   // CYD, wider when the canvas is.
-  int sparkW = W - 170; if (sparkW < 70) sparkW = 70;
-  drawSparkline(86, 1, sparkW, 12);
+  // Once a host bridge reports the account rate limits, they take the
+  // sparkline's place: "5h 30% 7d 12%", tinted like a terminal status line.
+  if (tama.rl5h >= 0 || tama.rl7d >= 0) {
+    int lx = 96;
+    const char* labels[2] = {"5h ", " 7d "};
+    int8_t pcts[2] = {tama.rl5h, tama.rl7d};
+    for (int i = 0; i < 2; i++) {
+      if (pcts[i] < 0) continue;
+      spr.setCursor(lx, 3); spr.setTextColor(p.textDim, p.bg); spr.print(labels[i]);
+      lx += (int)strlen(labels[i]) * 6;
+      char pb[6]; snprintf(pb, sizeof(pb), "%d%%", pcts[i]);
+      spr.setCursor(lx, 3); spr.setTextColor(usageColor(pcts[i]), p.bg); spr.print(pb);
+      lx += (int)strlen(pb) * 6;
+    }
+  } else {
+    int sparkW = W - 170; if (sparkW < 70) sparkW = 70;
+    drawSparkline(86, 1, sparkW, 12);
+  }
 
   // Tokens today, right-aligned
   uint32_t t = tama.tokensToday;
