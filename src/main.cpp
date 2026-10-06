@@ -465,6 +465,9 @@ static void applyReset(uint8_t idx) {
 // Footer hint row inside a menu panel — now that rows are directly
 // tappable, the hint is just a reminder of the close affordance.
 const int MENU_HINT_H = 14;
+// Header strip at the top of every overlay panel that holds only the X, so
+// a resistive tap aimed at it can't land on the first row.
+const int PANEL_HEAD_H = 20;
 static void drawMenuHints(const Palette& p, int mx, int mw, int hy,
                           const char* /*downLbl*/ = "", const char* /*rightLbl*/ = "") {
   spr.drawFastHLine(mx + 6, hy - 4, mw - 12, p.textDim);
@@ -476,18 +479,19 @@ static void drawMenuHints(const Palette& p, int mx, int mw, int hy,
 // Top-right X close button drawn on every overlay panel. Tap region is
 // generous so a resistive finger lands easily.
 static void drawPanelX(const Palette& p, int mx, int my, int mw, uint16_t edgeCol) {
-  // small rounded box around the X for visual hit-target
-  spr.fillRoundRect(mx + mw - 22, my + 2, 18, 14, 3, PANEL);
-  spr.drawRoundRect(mx + mw - 22, my + 2, 18, 14, 3, edgeCol);
+  // Rounded box around the X in its own header strip, ruled off from the rows.
+  spr.fillRoundRect(mx + mw - 32, my + 3, 28, 15, 3, PANEL);
+  spr.drawRoundRect(mx + mw - 32, my + 3, 28, 15, 3, edgeCol);
   spr.setTextSize(1);
   spr.setTextColor(edgeCol, PANEL);
-  spr.setCursor(mx + mw - 16, my + 6);
+  spr.setCursor(mx + mw - 21, my + 7);
   spr.print("X");
+  spr.drawFastHLine(mx + 6, my + PANEL_HEAD_H + 1, mw - 12, edgeCol);
 }
 
 static void drawSettings() {
   const Palette& p = characterPalette();
-  int mw = 210, mh = 16 + SETTINGS_N * 14 + MENU_HINT_H;
+  int mw = 210, mh = 16 + PANEL_HEAD_H + SETTINGS_N * 14 + MENU_HINT_H;
   int mx = (W - mw) / 2, my = (H - mh) / 2;
   spr.fillRoundRect(mx, my, mw, mh, 4, PANEL);
   spr.drawRoundRect(mx, my, mw, mh, 4, p.textDim);
@@ -498,12 +502,12 @@ static void drawSettings() {
     const uint8_t i = settingsIds[row];
     bool sel = (row == settingsSel);
     spr.setTextColor(sel ? p.text : p.textDim, PANEL);
-    spr.setCursor(mx + 6, my + 8 + row * 14);
+    spr.setCursor(mx + 6, my + 8 + PANEL_HEAD_H + row * 14);
     spr.print(sel ? "> " : "  ");
     spr.print(settingsItems[i]);
     // Shift the value column inward enough that the top-right X close
     // badge can't overlap the first row's value text.
-    spr.setCursor(mx + mw - 58, my + 8 + row * 14);
+    spr.setCursor(mx + mw - 58, my + 8 + PANEL_HEAD_H + row * 14);
     spr.setTextColor(p.textDim, PANEL);
     if (i == 0) {
       spr.printf("%u/4", brightLevel);
@@ -539,7 +543,7 @@ static void drawSettings() {
 
 static void drawReset() {
   const Palette& p = characterPalette();
-  int mw = 210, mh = 16 + RESET_N * 14 + MENU_HINT_H;
+  int mw = 210, mh = 16 + PANEL_HEAD_H + RESET_N * 14 + MENU_HINT_H;
   int mx = (W - mw) / 2, my = (H - mh) / 2;
   spr.fillRoundRect(mx, my, mw, mh, 4, PANEL);
   spr.drawRoundRect(mx, my, mw, mh, 4, HOT);
@@ -547,7 +551,7 @@ static void drawReset() {
   for (int i = 0; i < RESET_N; i++) {
     bool sel = (i == resetSel);
     spr.setTextColor(sel ? p.text : p.textDim, PANEL);
-    spr.setCursor(mx + 6, my + 8 + i * 14);
+    spr.setCursor(mx + 6, my + 8 + PANEL_HEAD_H + i * 14);
     spr.print(sel ? "> " : "  ");
     bool armed = (i == resetConfirmIdx) &&
                  (int32_t)(millis() - resetConfirmUntil) < 0;
@@ -589,7 +593,7 @@ void menuConfirm() {
 
 void drawMenu() {
   const Palette& p = characterPalette();
-  int mw = 210, mh = 16 + MENU_N * 14 + MENU_HINT_H;
+  int mw = 210, mh = 16 + PANEL_HEAD_H + MENU_N * 14 + MENU_HINT_H;
   int mx = (W - mw) / 2, my = (H - mh) / 2;
   spr.fillRoundRect(mx, my, mw, mh, 4, PANEL);
   spr.drawRoundRect(mx, my, mw, mh, 4, p.textDim);
@@ -597,7 +601,7 @@ void drawMenu() {
   for (int i = 0; i < MENU_N; i++) {
     bool sel = (i == menuSel);
     spr.setTextColor(sel ? p.text : p.textDim, PANEL);
-    spr.setCursor(mx + 6, my + 8 + i * 14);
+    spr.setCursor(mx + 6, my + 8 + PANEL_HEAD_H + i * 14);
     spr.print(sel ? "> " : "  ");
     spr.print(menuItems[menuIds[i]]);
     if (menuIds[i] == 6) spr.print(dataDemo() ? "  on" : "  off");   // demo toggle suffix
@@ -2545,14 +2549,18 @@ static bool handleOverlayTap(const HalTouchEvent& evt) {
   else if (menuOpen)     n = MENU_N;
   else                   return false;
   int mw = 210;
-  int mh = 16 + n * 14 + MENU_HINT_H;
+  int mh = 16 + PANEL_HEAD_H + n * 14 + MENU_HINT_H;
   int mx = (W - mw) / 2;
   int my = (H - mh) / 2;
 
   // X close — generous hit box around the badge so resistive touch can
   // land cleanly on top-right.
-  if (evt.ex >= mx + mw - 28 && evt.ex <= mx + mw + 4 &&
-      evt.ey >= my - 2      && evt.ey <= my + 20) {
+  // Close on the X's header strip (its whole right half holds nothing else)
+  // or on any tap outside the panel. Resistive touch reads 15-25 px off near
+  // the screen edges, so a tap aimed at the X often lands just above it.
+  bool onX     = evt.ex >= mx + mw / 2 && evt.ey <= my + PANEL_HEAD_H + 2;
+  bool outside = evt.ex < mx || evt.ex > mx + mw || evt.ey < my || evt.ey > my + mh;
+  if (onX || outside) {
     if (resetOpen)         { resetOpen = false; }
     else if (settingsOpen) { settingsOpen = false; characterInvalidate(); }
     else if (menuOpen)     { menuOpen = false; characterInvalidate(); }
@@ -2560,9 +2568,8 @@ static bool handleOverlayTap(const HalTouchEvent& evt) {
     return true;
   }
 
-  // Row hit-test — each row is 14 px tall starting at my + 8.
-  if (evt.ex < mx || evt.ex > mx + mw) return false;
-  int rel = evt.ey - (my + 8);
+  // Row hit-test — each row is 14 px tall starting below the header.
+  int rel = evt.ey - (my + 8 + PANEL_HEAD_H);
   if (rel < 0) return false;
   int idx = rel / 14;
   if (idx < 0 || idx >= n) return false;
@@ -3019,15 +3026,11 @@ void loop() {
       responseSent = true;
       statsOnDenial();
       SFX(SFX_DENIED);
-    } else if (resetOpen) {
-      beep(2400, 30);
-      applyReset(resetSel);
-    } else if (settingsOpen) {
-      beep(2400, 30);
-      applySetting(settingsIds[settingsSel]);
-    } else if (menuOpen) {
-      beep(2400, 30);
-      menuConfirm();
+    } else if (resetOpen || settingsOpen || menuOpen) {
+      // Overlay panels act on the tap release (handleOverlayTap). BtnB fires
+      // on press, before that release, so acting here too would apply the
+      // highlighted row (brightness by default) on every right-half tap,
+      // including taps on the X.
     } else if (displayMode == DISP_INFO) {
       beep(2400, 30);
       infoPage = (infoPage + 1) % INFO_PAGES;
