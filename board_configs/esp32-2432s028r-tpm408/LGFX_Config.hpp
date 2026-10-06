@@ -1,4 +1,6 @@
-// LovyanGFX panel configuration for the 2.8" 320x240 ILI9341 SPI panel with
+// LovyanGFX panel configuration for the 2.8" ESP32-2432S028R units that ship
+// with "TPM408-2.8" glass (env cyd-tpm408). Otherwise identical to
+// board_configs/esp32-2432s028r: 320x240 ILI9341 SPI panel with
 // XPT2046 resistive touch (Sunton ESP32-2432S028R -- this specific board is
 // the widely known "Cheap Yellow Display"/CYD in the hobbyist community).
 // Unlike every other board in this project, this one is a classic ESP32
@@ -49,15 +51,19 @@ public:
             cfg.pin_cs = 15;
             cfg.pin_rst = -1;
             cfg.pin_busy = -1;
-            cfg.memory_width = 240;
-            cfg.memory_height = 320;
-            cfg.panel_width = 240;
-            cfg.panel_height = 320;
+            // This panel batch (TPM408-2.8 glass) is wired as a native
+            // 320x240 landscape panel, mirrored, and takes RGB. Declared as
+            // 320x240 with offset 7 (MADCTL MV|MX|MY), rotation 0 is upright
+            // portrait 240x320; 240x320 without MV showed the image
+            // transposed with 80 unwritten rows.
+            cfg.memory_width = 320;
+            cfg.memory_height = 240;
+            cfg.panel_width = 320;
+            cfg.panel_height = 240;
             cfg.offset_x = 0;
             cfg.offset_y = 0;
-            cfg.offset_rotation = 0;
-            cfg.rgb_order = false;  // BGR color space, per Sunton's
-                                     // ESP_LCD_COLOR_SPACE_BGR config
+            cfg.offset_rotation = 7;
+            cfg.rgb_order = true;
             cfg.invert = false;
             _panel_instance.config(cfg);
         }

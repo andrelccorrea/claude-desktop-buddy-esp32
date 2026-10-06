@@ -41,6 +41,7 @@ See [`REFERENCE.md`](REFERENCE.md) for the wire protocol.
 | Board | Env | Chip | Panel | Touch | Status |
 | --- | --- | --- | --- | --- | --- |
 | 2.8" ESP32-2432S028R ("CYD") | `cyd` | ESP32 | 240x320 | resistive | builds |
+| 2.8" ESP32-2432S028R, TPM408-2.8 panel | `cyd-tpm408` | ESP32 | 240x320 | resistive | **tested** |
 | 2.4" ESP32-2432S024C | `sunton-2432s024c` | ESP32 | 240x320 | capacitive | builds |
 | 3.5" ESP32-3248S035R | `sunton-3248s035r` | ESP32 | 320x480 | resistive | **tested** |
 | 3.5" ESP32-3248S035C | `sunton-3248s035c` | ESP32 | 320x480 | capacitive | builds |

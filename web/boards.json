@@ -12,6 +12,16 @@
       "status": "untested"
     },
     {
+      "env": "cyd-tpm408",
+      "name": "2.8\" Cheap Yellow Display (TPM408 panel)",
+      "model": "ESP32-2432S028R",
+      "chip": "ESP32",
+      "resolution": "240 x 320",
+      "touch": "resistive",
+      "hint": "Same board with \"TPM408-2.8\" printed on the panel flex. Pick this if the cyd build shows a mirrored or sideways image with a noisy strip.",
+      "status": "tested"
+    },
+    {
       "env": "sunton-2432s024c",
       "name": "2.4\" Sunton capacitive",
       "model": "ESP32-2432S024C",
